@@ -1,4 +1,5 @@
 import { Text, View } from "react-native";
+import { styles } from "./styles";
 
 export default function Index() {
   return (
@@ -9,7 +10,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
-      <Text>Hellow~ World!</Text>
+      <Text style={styles.mainText}>Hellow~ World!</Text>
     </View>
   );
 }
