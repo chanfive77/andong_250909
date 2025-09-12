@@ -1,7 +1,8 @@
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { Dimensions, Image, StyleSheet, View } from "react-native";
-let imagePath = require('../assets/images/andong/andonggalbi_main.jpg');
-const screenWidth = Dimensions.get('window').width; // 현재 화면 너비
-const screenHeight = Dimensions.get('window').height; // 현재 화면 높이
+
+let imagePath = require('../assets/images/main/andonggalbi_main.jpg');
+const Stack = createNativeStackNavigator();
 
 const { width, height } = Dimensions.get('window');
 const FullscreenImage = () => {
@@ -10,7 +11,7 @@ const FullscreenImage = () => {
       <Image
         style={styles.image}
         source={imagePath} // 이미지의 URL을 입력하세요
-        resizeMode="cover" // 또는 "contain"
+        resizeMode="contain" // 또는 "contain"
       />
     </View>
   );
