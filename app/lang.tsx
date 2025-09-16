@@ -21,25 +21,28 @@ const App = () => {
     <ImageBackground
       source={require('../assets/images/lang/language_bg.jpg')} // 이미지 파일 경로를 지정합니다.
       style={styles.backgroundImage}
-      resizeMode="cover" // 이미지가 전체 화면을 덮도록 합니다. (cover, contain)
+      resizeMode="contain" // 이미지가 전체 화면을 덮도록 합니다. (cover, contain)
     >
       {/*<View style={styles.overlay}>
         <Text style={styles.text}>이것은 백그라운드 이미지 위의 텍스트입니다.</Text>
       </View>*/}
 
-      <View style={styles.imageTop}>
-        <Link href={"/menu?lang=kr"}>
-          <Image source={require('../assets/images/lang/korea_lang.jpg')} style={styles.image} />
-        </Link>
-      </View>
-      <View style={styles.container}>
-          {images.map((image) => (
-            <View key={image.id} style={styles.imageWrapper}>
-              <Link href={`${image.linkUrl}?lang=${image.state.lang}`}>
-              <Image source={image.source} style={styles.image} />
-              </Link>
-            </View>
-          ))}
+      {/* 국기 이미지 전체 래퍼 레이어 */}
+      <View style={styles.flagsWrapper}>
+        <View style={styles.imageTop}>
+          <Link href={"/menu?lang=kr"}>
+            <Image source={require('../assets/images/lang/korea_lang.jpg')} style={styles.image} />
+          </Link>
+        </View>
+        <View style={styles.container}>
+            {images.map((image) => (
+              <View key={image.id} style={styles.imageWrapper}>
+                <Link href={`${image.linkUrl}?lang=${image.state.lang}`}>
+                <Image source={image.source} style={styles.image} />
+                </Link>
+              </View>
+            ))}
+        </View>
       </View>
 
     </ImageBackground>
@@ -54,6 +57,17 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
+  flagsWrapper: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20, // 전체 국기 이미지 영역 패딩 (조정 가능)
+    paddingTop: 50, // 상단 패딩 (조정 가능)
+    paddingBottom: 30, // 하단 패딩 (조정 가능)
+    paddingHorizontal: 15, // 좌우 패딩 (조정 가능)
+  },
   overlay: {
     backgroundColor: 'rgba(209, 37, 37, 0.5)', // 배경 이미지 위에 텍스트를 더 잘 보이게 합니다.
     padding: 20,
@@ -63,7 +77,6 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
   },
-
   container: {
     flexDirection: 'row', // 이미지를 가로로 배치
     flexWrap: 'wrap',    // 한 줄에 이미지가 꽉 차면 다음 줄로 넘어가기
@@ -72,23 +85,23 @@ const styles = StyleSheet.create({
     padding: 5,
   },
   imageTop: {
-    marginTop: 150,
+    marginTop: 250,
     width: '25%', // 한 줄에 3개씩 배치하기 위한 너비 (예시)
     padding: 3,
-    paddingVertical: 8,
+    paddingVertical: 11,
     aspectRatio: 4.7/3.6, // 이미지 비율을 1:1로 유지 (정사각형으로)
   },
   imageWrapper: {
     width: '25%', // 한 줄에 3개씩 배치하기 위한 너비 (예시)
     padding: 3,
-    paddingVertical: 8,
+    paddingVertical: 11,
     aspectRatio: 4.7/3.6, // 이미지 비율을 1:1로 유지 (정사각형으로)
   },
   image: {
     flex: 1, // 부모의 너비를 모두 차지
     width: '100%',
     height: '100%',
-    resizeMode: 'cover', // 이미지가 잘리지 않고 꽉 차게 설정
+    resizeMode: 'cover', // 이미지가 잘리지 않고 꽉 차게 설정(cover, contain)
   },
 });
 

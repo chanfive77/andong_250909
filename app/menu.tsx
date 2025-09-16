@@ -1,6 +1,13 @@
 import { useLocalSearchParams } from 'expo-router';
 import React, { useRef, useState } from 'react';
 import { Dimensions, Image, ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
+import { Gesture, GestureDetector } from 'react-native-gesture-handler';
+import Animated, {
+  runOnJS,
+  useAnimatedStyle,
+  useSharedValue,
+  withSpring,
+} from 'react-native-reanimated';
 
 const { width } = Dimensions.get('window');
 
@@ -116,10 +123,159 @@ const menuImagesByLanguage = {
   ],
 } as const;
 
+// 더블탭 + 핀치 줌 이미지 컴포넌트
+const ZoomableImage = React.memo(({ source, onZoomChange }: { 
+  source: any; 
+  onZoomChange: (isZoomed: boolean) => void;
+}) => {
+  const scale = useSharedValue(1);
+  const savedScale = useSharedValue(1);
+  const translateX = useSharedValue(0);
+  const translateY = useSharedValue(0);
+  const savedTranslateX = useSharedValue(0);
+  const savedTranslateY = useSharedValue(0);
+
+  const updateZoomState = (zoomed: boolean) => {
+    onZoomChange(zoomed);
+  };
+
+  // 더블탭으로 2배 확대/축소
+  const doubleTap = Gesture.Tap()
+    .numberOfTaps(2)
+    .onEnd((event) => {
+      'worklet';
+      if (scale.value === 1) {
+        // 확대: 탭한 위치를 중심으로 2배 확대
+        const tapX = event.x;
+        const tapY = event.y;
+        
+        // 이미지 중심에서 탭 위치까지의 거리 계산
+        const centerX = width / 2;
+        const centerY = width / 2;
+        
+        // 확대 후 탭한 위치가 중심에 오도록 translate 계산
+        const newTranslateX = (centerX - tapX) * 1;
+        const newTranslateY = (centerY - tapY) * 1;
+        
+        scale.value = withSpring(2, { damping: 15 });
+        translateX.value = withSpring(newTranslateX, { damping: 15 });
+        translateY.value = withSpring(newTranslateY, { damping: 15 });
+        savedScale.value = 2;
+        savedTranslateX.value = newTranslateX;
+        savedTranslateY.value = newTranslateY;
+        runOnJS(updateZoomState)(true);
+      } else {
+        // 축소: 즉시 원본 크기로 복구
+        scale.value = withSpring(1, { damping: 15 });
+        translateX.value = withSpring(0, { damping: 15 });
+        translateY.value = withSpring(0, { damping: 15 });
+        savedScale.value = 1;
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+        runOnJS(updateZoomState)(false);
+      }
+    });
+
+  // 핀치 제스처로 확대/축소
+  const pinch = Gesture.Pinch()
+    .onStart(() => {
+      'worklet';
+      savedScale.value = scale.value;
+    })
+    .onUpdate((event) => {
+      'worklet';
+      const newScale = savedScale.value * event.scale;
+      // 1배에서 3배까지 제한
+      if (newScale >= 1 && newScale <= 3) {
+        scale.value = newScale;
+        runOnJS(updateZoomState)(newScale > 1);
+      }
+    })
+    .onEnd(() => {
+      'worklet';
+      // 1.2배 미만이면 원본 크기로 복구
+      if (scale.value < 1.3) {
+        scale.value = withSpring(1, { damping: 15 });
+        translateX.value = withSpring(0, { damping: 15 });
+        translateY.value = withSpring(0, { damping: 15 });
+        savedScale.value = 1;
+        savedTranslateX.value = 0;
+        savedTranslateY.value = 0;
+        runOnJS(updateZoomState)(false);
+      } else {
+        savedScale.value = scale.value;
+      }
+    });
+
+  // 팬 제스처로 확대된 이미지 드래그
+  const pan = Gesture.Pan()
+    .minDistance(0) // 제스처로 인식되기 위해 손가락이 이동해야 하는 최소 거리
+    .activateAfterLongPress(10) //롱프레스 제스처가 발생한 후, Pan 제스처가 활성화되기까지의 시간(밀리초) *속도 향상에 중요해 보임
+    .onStart(() => {
+      'worklet';
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+      console.log('pan start');
+    })
+    .onUpdate((event) => {
+      'worklet';
+      if (scale.value > 1.2) {
+        // 확대된 상태에서만 드래그 허용
+        const imageWidth = width * scale.value;
+        const imageHeight = width * scale.value; // 정사각형 이미지 가정
+        
+        // 드래그 경계 계산 - 이미지가 화면 밖으로 나가지 않도록
+        //const maxTranslateX = Math.max(0, (imageWidth - width) / 2);
+        //const maxTranslateY = Math.max(0, (imageHeight - width) / 2);
+        
+        const newTranslateX = savedTranslateX.value + event.translationX;
+        const newTranslateY = savedTranslateY.value + event.translationY;
+        
+        // 부드러운 경계 제한
+        //translateX.value = Math.max(-maxTranslateX, Math.min(maxTranslateX, newTranslateX));
+        //translateY.value = Math.max(-maxTranslateY, Math.min(maxTranslateY, newTranslateY));
+
+        translateX.value = newTranslateX;
+        translateY.value = newTranslateY;
+      }
+      console.log('pan update');
+    })
+    .onEnd(() => {
+      'worklet';
+      savedTranslateX.value = translateX.value;
+      savedTranslateY.value = translateY.value;
+      console.log('pan end');
+    });
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
+
+  // 제스처 조합: 핀치와 팬은 동시에, 더블탭은 별도로
+  const composed = Gesture.Simultaneous(
+    Gesture.Exclusive(doubleTap, pan),
+    pinch
+  );
+
+  return (
+    <GestureDetector gesture={composed}>
+      <Animated.View style={[styles.zoomableContainer, animatedStyle]}>
+        <Image source={source} style={styles.menuImage} resizeMode="contain" />
+      </Animated.View>
+    </GestureDetector>
+  );
+});
+
 const App = () => {
   const { lang } = useLocalSearchParams();
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [isZoomed, setIsZoomed] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+  const [isScrolling, setIsScrolling] = useState(false);
   
   // 언어 파라미터에 따른 배경 이미지 선택 (기본값: kr)
   const getBackgroundImage = () => {
@@ -134,12 +290,62 @@ const App = () => {
   };
 
   const menuImages = getMenuImages();
+  
+  // 무한 스크롤을 위해 이미지 배열을 확장 (앞뒤에 복사본 추가)
+  const infiniteImages = [
+    menuImages[menuImages.length - 1], // 마지막 이미지를 맨 앞에
+    ...menuImages,
+    menuImages[0] // 첫 번째 이미지를 맨 뒤에
+  ];
 
   // 스크롤 이벤트 핸들러
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / width);
-    setCurrentIndex(index);
+    
+    // 실제 이미지 인덱스 계산 (복사본 제외)
+    let realIndex = index - 1;
+    if (realIndex < 0) realIndex = menuImages.length - 1;
+    if (realIndex >= menuImages.length) realIndex = 0;
+    
+    setCurrentIndex(realIndex);
+  };
+
+  // 스크롤 끝났을 때 무한 스크롤 처리
+  const handleScrollEnd = (event: any) => {
+    const scrollPosition = event.nativeEvent.contentOffset.x;
+    const index = Math.round(scrollPosition / width);
+    
+    // 첫 번째 복사본(인덱스 0)에 있으면 마지막 실제 이미지로 이동
+    if (index === 0) {
+      scrollViewRef.current?.scrollTo({
+        x: menuImages.length * width,
+        animated: false
+      });
+    }
+    // 마지막 복사본(인덱스 infiniteImages.length - 1)에 있으면 첫 번째 실제 이미지로 이동
+    else if (index === infiniteImages.length - 1) {
+      scrollViewRef.current?.scrollTo({
+        x: width,
+        animated: false
+      });
+    }
+  };
+
+  // 컴포넌트 마운트 시 첫 번째 실제 이미지 위치로 스크롤
+  React.useEffect(() => {
+    setTimeout(() => {
+      scrollViewRef.current?.scrollTo({
+        x: width, // 첫 번째 실제 이미지 위치
+        animated: false
+      });
+    }, 100);
+  }, []);
+
+  // 줌 상태 변경 핸들러
+  const handleZoomChange = (zoomed: boolean) => {
+    setIsZoomed(zoomed);
+    console.log('zoomed: ', zoomed);
   };
 
   // 페이지네이션 도트 렌더링
@@ -186,10 +392,11 @@ const App = () => {
             onScroll={handleScroll}
             scrollEventThrottle={16}
             style={styles.scrollView}
+            scrollEnabled={!isZoomed}
           >
             {menuImages.map((image, index) => (
               <View key={index} style={styles.imageContainer}>
-                <Image source={image} style={styles.menuImage} resizeMode="contain" />
+                <ZoomableImage source={image} onZoomChange={handleZoomChange} />
               </View>
             ))}
           </ScrollView>
@@ -283,6 +490,13 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
+  },
+  zoomableContainer: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });
 
