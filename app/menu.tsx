@@ -1,6 +1,7 @@
-import { useLocalSearchParams } from 'expo-router';
+import { MaterialIcons } from '@expo/vector-icons';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useRef, useState } from 'react';
-import { Dimensions, Image, ImageBackground, ScrollView, StyleSheet, View } from 'react-native';
+import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
   runOnJS,
@@ -11,22 +12,6 @@ import Animated, {
 
 const { width } = Dimensions.get('window');
 
-// 언어별 배경 이미지 매핑
-const backgroundImages = {
-  kr: require('../assets/images/menu/kr_n1.jpg'),
-  us: require('../assets/images/menu/us_n1.jpg'),
-  cn: require('../assets/images/menu/cn_n1.jpg'),
-  jp: require('../assets/images/menu/jp_n1.jpg'),
-  sp: require('../assets/images/menu/sp_n1.jpg'),
-  tl: require('../assets/images/menu/tl_n1.jpg'),
-  ins: require('../assets/images/menu/ins_n1.jpg'),
-  tp: require('../assets/images/menu/tp_n1.jpg'),
-  vn: require('../assets/images/menu/vn_n1.jpg'),
-  fr: require('../assets/images/menu/fr_n1.jpg'),
-  ind: require('../assets/images/menu/ind_n1.jpg'),
-  mg: require('../assets/images/menu/mg_n1.jpg'),
-  gm: require('../assets/images/menu/gm_n1.jpg'),
-} as const;
 
 // 언어별 메뉴 이미지 배열 (각 언어당 4장)
 const menuImagesByLanguage = {
@@ -272,17 +257,12 @@ const ZoomableImage = React.memo(({ source, onZoomChange }: {
 
 const App = () => {
   const { lang } = useLocalSearchParams();
+  const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [isScrolling, setIsScrolling] = useState(false);
   
-  // 언어 파라미터에 따른 배경 이미지 선택 (기본값: kr)
-  const getBackgroundImage = () => {
-    const langKey = Array.isArray(lang) ? lang[0] : lang;
-    return backgroundImages[langKey as keyof typeof backgroundImages] || backgroundImages.kr;
-  };
-
   // 언어 파라미터에 따른 메뉴 이미지 배열 선택 (기본값: kr)
   const getMenuImages = () => {
     const langKey = Array.isArray(lang) ? lang[0] : lang;
@@ -334,13 +314,29 @@ const App = () => {
 
   // 컴포넌트 마운트 시 첫 번째 실제 이미지 위치로 스크롤
   React.useEffect(() => {
-    setTimeout(() => {
+    // 초기 currentIndex를 0으로 설정
+    setCurrentIndex(0);
+    
+    // 스크롤 위치를 첫 번째 실제 이미지로 설정
+    const timer = setTimeout(() => {
       scrollViewRef.current?.scrollTo({
-        x: width, // 첫 번째 실제 이미지 위치
+        x: width, // 첫 번째 실제 이미지 위치 (인덱스 1)
         animated: false
       });
-    }, 100);
-  }, []);
+    }, 50); // 타이밍을 더 빠르게 조정
+    
+    return () => clearTimeout(timer);
+  }, [lang]); // lang이 변경될 때도 실행
+
+  // 홈으로 이동
+  const goToHome = () => {
+    router.push('/');
+  };
+
+  // 언어 선택 페이지로 이동
+  const goToLanguage = () => {
+    router.push('/lang');
+  };
 
   // 줌 상태 변경 핸들러
   const handleZoomChange = (zoomed: boolean) => {
@@ -367,14 +363,26 @@ const App = () => {
   
   return (
     <View style={styles.container}>
-      {/* 배경 이미지 레이어 (투명도 적용) */}
-      <ImageBackground
-        source={getBackgroundImage()} // 파라미터에 따른 동적 이미지 로드
-        style={styles.backgroundImageLayer}
-        resizeMode="cover" // 이미지가 전체 화면을 덮도록 합니다. (cover, contain)
-      />
-      
-      {/* 컨텐츠 레이어 (투명도 적용 안됨) */}
+      {/* 오른쪽 상단 네비게이션 버튼들 */}
+      <View style={styles.topNavigation}>
+        <TouchableOpacity 
+          style={styles.navButton} 
+          onPress={goToHome}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="home" size={28} color="#ffffff" />
+        </TouchableOpacity>
+        
+        <TouchableOpacity 
+          style={styles.navButton} 
+          onPress={goToLanguage}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="language" size={28} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
+
+      {/* 컨텐츠 레이어 */}
       <View style={styles.contentLayer}>
         {/*
         <View style={styles.overlay}>
@@ -390,11 +398,13 @@ const App = () => {
             pagingEnabled
             showsHorizontalScrollIndicator={false}
             onScroll={handleScroll}
+            onMomentumScrollEnd={handleScrollEnd}
             scrollEventThrottle={16}
             style={styles.scrollView}
             scrollEnabled={!isZoomed}
+            contentOffset={{ x: width, y: 0 }} // 초기 위치를 첫 번째 실제 이미지로 설정
           >
-            {menuImages.map((image, index) => (
+            {infiniteImages.map((image, index) => (
               <View key={index} style={styles.imageContainer}>
                 <ZoomableImage source={image} onZoomChange={handleZoomChange} />
               </View>
@@ -414,14 +424,7 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
     height: '100%',
-  },
-  backgroundImageLayer: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    opacity: 0.3, // 배경 이미지만 투명도 적용
+    backgroundColor: '#3d3c3a', // 검은색 배경
   },
   contentLayer: {
     flex: 1,
@@ -497,6 +500,22 @@ const styles = StyleSheet.create({
     height: '100%',
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  topNavigation: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    flexDirection: 'row',
+    zIndex: 20,
+  },
+  navButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginLeft: 10,
   },
 });
 

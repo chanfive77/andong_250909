@@ -1,5 +1,6 @@
-import { Link } from 'expo-router';
+import { Link, useRouter } from 'expo-router';
 import { Image, ImageBackground, StyleSheet, View } from 'react-native';
+import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const images = [
   { id: '1', source: require('../assets/images/lang/america_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'us' } },
@@ -17,12 +18,31 @@ const images = [
 ];
 
 const App = () => {
+  const router = useRouter();
+
+  const handleSwipeGesture = (event: any) => {
+    if (event.nativeEvent.state === State.END) {
+      const { translationX, velocityX } = event.nativeEvent;
+      
+      // 오른쪽으로 스와이프 감지 (translationX > 50 또는 velocityX > 500)
+      if (translationX > 50 || velocityX > 500) {
+        router.push('/');
+      }
+      // 왼쪽으로 스와이프 감지 (translationX < -50 또는 velocityX < -500)
+      else if (translationX < -50 || velocityX < -500) {
+        router.push('/menu?lang=kr');
+      }
+    }
+  };
+
   return (
-    <ImageBackground
-      source={require('../assets/images/lang/language_bg.jpg')} // 이미지 파일 경로를 지정합니다.
-      style={styles.backgroundImage}
-      resizeMode="contain" // 이미지가 전체 화면을 덮도록 합니다. (cover, contain)
-    >
+    <PanGestureHandler onHandlerStateChange={handleSwipeGesture}>
+      <View style={{ flex: 1 }}>
+        <ImageBackground
+          source={require('../assets/images/lang/language_bg.jpg')} // 이미지 파일 경로를 지정합니다.
+          style={styles.backgroundImage}
+          resizeMode="contain" // 이미지가 전체 화면을 덮도록 합니다. (cover, contain)
+        >
       {/*<View style={styles.overlay}>
         <Text style={styles.text}>이것은 백그라운드 이미지 위의 텍스트입니다.</Text>
       </View>*/}
@@ -45,7 +65,9 @@ const App = () => {
         </View>
       </View>
 
-    </ImageBackground>
+        </ImageBackground>
+      </View>
+    </PanGestureHandler>
   );
 };
 
@@ -56,6 +78,7 @@ const styles = StyleSheet.create({
     alignItems: 'center', // 자식 요소들을 수평 중앙 정렬합니다. 
     width: '100%',
     height: '100%',
+    backgroundColor: '#3d3c3a',
   },
   flagsWrapper: {
     flex: 1,

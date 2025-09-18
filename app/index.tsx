@@ -1,31 +1,40 @@
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { Link } from "expo-router";
-import { Dimensions, Image, ImageBackground, StyleSheet, TouchableOpacity, View } from "react-native";
+import { useRouter } from "expo-router";
+import React from 'react';
+import { Dimensions, Image, StyleSheet, TouchableOpacity, View } from "react-native";
 
 let imagePath = require('../assets/images/main/andonggalbi_main.jpg');
 const Stack = createNativeStackNavigator();
 
 const { width, height } = Dimensions.get('window');
-const FullscreenImage = () => {
+const App = () => {
+  const router = useRouter();
+
+  const handlePress = () => {
+    router.push('/lang');
+  };
+
   return (
     <View style={styles.container}>
-      {/* 투명한 배경 이미지 레이어 */}
+      {/* 투명한 배경 이미지 레이어
       <ImageBackground
         source={imagePath}
         style={styles.backgroundImageLayer}
         resizeMode="cover"
       />
-      
+      */}
       {/* 기존 컨텐츠 레이어 */}
-      <Link href="/lang" asChild>
-        <TouchableOpacity style={styles.touchableArea}>
-          <Image
-            style={styles.image}
-            source={imagePath}
-            resizeMode="contain"
-          />
-        </TouchableOpacity>
-      </Link>
+      <TouchableOpacity 
+        style={styles.touchableArea}
+        activeOpacity={1}
+        onPress={handlePress}
+      >
+        <Image
+          style={styles.image}
+          source={imagePath}
+          resizeMode="contain"
+        />
+      </TouchableOpacity>
     </View>
   );
 };
@@ -33,6 +42,7 @@ const FullscreenImage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1, // View 컴포넌트가 화면 전체를 차지하도록 설정
+    backgroundColor: '#3d3c3a',
   },
   backgroundImageLayer: {
     position: 'absolute',
@@ -54,4 +64,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default FullscreenImage;
+export default App;
