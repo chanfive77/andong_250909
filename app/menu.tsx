@@ -338,6 +338,32 @@ const App = () => {
     router.push('/lang');
   };
 
+  // 이전 이미지로 이동 (왼쪽 화살표)
+  const goToPrevious = () => {
+    const currentScrollPosition = (currentIndex + 1) * width; // 현재 위치
+    const targetScrollPosition = currentScrollPosition - width; // 이전 위치
+    
+    scrollViewRef.current?.scrollTo({
+      x: targetScrollPosition,
+      animated: true
+    });
+    
+    // handleScrollEnd에서 무한 스크롤 처리가 자동으로 됨
+  };
+
+  // 다음 이미지로 이동 (오른쪽 화살표)
+  const goToNext = () => {
+    const currentScrollPosition = (currentIndex + 1) * width; // 현재 위치
+    const targetScrollPosition = currentScrollPosition + width; // 다음 위치
+    
+    scrollViewRef.current?.scrollTo({
+      x: targetScrollPosition,
+      animated: true
+    });
+    
+    // handleScrollEnd에서 무한 스크롤 처리가 자동으로 됨
+  };
+
   // 줌 상태 변경 핸들러
   const handleZoomChange = (zoomed: boolean) => {
     setIsZoomed(zoomed);
@@ -410,6 +436,23 @@ const App = () => {
               </View>
             ))}
           </ScrollView>
+          
+          {/* 좌우 이동 화살표 */}
+          <TouchableOpacity 
+            style={styles.leftArrow} 
+            onPress={goToPrevious}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="chevron-left" size={40} color="#ffffff" />
+          </TouchableOpacity>
+          
+          <TouchableOpacity 
+            style={styles.rightArrow} 
+            onPress={goToNext}
+            activeOpacity={0.7}
+          >
+            <MaterialIcons name="chevron-right" size={40} color="#ffffff" />
+          </TouchableOpacity>
           
           {/* 페이지네이션 도트 */}
           {renderPagination()}
@@ -516,6 +559,32 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginLeft: 10,
+  },
+  leftArrow: {
+    position: 'absolute',
+    left: 20,
+    top: '50%',
+    transform: [{ translateY: -20 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  rightArrow: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    transform: [{ translateY: -20 }],
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 25,
+    width: 50,
+    height: 50,
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
 });
 
