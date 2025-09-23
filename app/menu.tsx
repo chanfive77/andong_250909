@@ -262,6 +262,7 @@ const App = () => {
   const [isZoomed, setIsZoomed] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [iconOpacity, setIconOpacity] = useState(0.3); // 아이콘 투명도 상태 (0.0 ~ 1.0)
   
   // 언어 파라미터에 따른 메뉴 이미지 배열 선택 (기본값: kr)
   const getMenuImages = () => {
@@ -370,6 +371,18 @@ const App = () => {
     console.log('zoomed: ', zoomed);
   };
 
+  // 아이콘 투명도 조정 함수
+  const adjustIconOpacity = (opacity: number) => {
+    // 0.0 ~ 1.0 범위로 제한
+    const clampedOpacity = Math.max(0.0, Math.min(1.0, opacity));
+    setIconOpacity(clampedOpacity);
+  };
+
+  // 아이콘 투명도 토글 함수 (예: 0.3 <-> 0.8)
+  const toggleIconOpacity = () => {
+    setIconOpacity(prevOpacity => prevOpacity <= 0.5 ? 0.8 : 0.3);
+  };
+
   // 페이지네이션 도트 렌더링
   const renderPagination = () => {
     return (
@@ -396,7 +409,7 @@ const App = () => {
           onPress={goToHome}
           activeOpacity={0.7}
         >
-          <MaterialIcons name="home" size={28} color="#ffffff" />
+          <MaterialIcons name="home" size={28} color="#ffffff" style={{ opacity: iconOpacity }} />
         </TouchableOpacity>
         
         <TouchableOpacity 
@@ -404,8 +417,17 @@ const App = () => {
           onPress={goToLanguage}
           activeOpacity={0.7}
         >
-          <MaterialIcons name="language" size={28} color="#ffffff" />
+          <MaterialIcons name="language" size={28} color="#ffffff" style={{ opacity: iconOpacity }} />
         </TouchableOpacity>
+        {/*}
+        <TouchableOpacity 
+          style={styles.navButton} 
+          onPress={toggleIconOpacity}
+          activeOpacity={0.7}
+        >
+          <MaterialIcons name="opacity" size={28} color="#ffffff" style={{ opacity: iconOpacity }} />
+        </TouchableOpacity>
+        */}
       </View>
 
       {/* 컨텐츠 레이어 */}
@@ -443,7 +465,7 @@ const App = () => {
             onPress={goToPrevious}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="chevron-left" size={40} color="#ffffff" />
+            <MaterialIcons name="chevron-left" size={40} color="#ffffff" style={{ opacity: iconOpacity }} />
           </TouchableOpacity>
           
           <TouchableOpacity 
@@ -451,7 +473,7 @@ const App = () => {
             onPress={goToNext}
             activeOpacity={0.7}
           >
-            <MaterialIcons name="chevron-right" size={40} color="#ffffff" />
+            <MaterialIcons name="chevron-right" size={40} color="#ffffff" style={{ opacity: iconOpacity }} />
           </TouchableOpacity>
           
           {/* 페이지네이션 도트 */}
@@ -552,7 +574,7 @@ const styles = StyleSheet.create({
     zIndex: 20,
   },
   navButton: {
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
+    backgroundColor: 'rgba(0, 0, 0, 0.2)',
     borderRadius: 25,
     width: 50,
     height: 50,
@@ -565,7 +587,7 @@ const styles = StyleSheet.create({
     left: 20,
     top: '50%',
     transform: [{ translateY: -20 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 25,
     width: 50,
     height: 50,
@@ -578,7 +600,7 @@ const styles = StyleSheet.create({
     right: 20,
     top: '50%',
     transform: [{ translateY: -20 }],
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.1)',
     borderRadius: 25,
     width: 50,
     height: 50,
