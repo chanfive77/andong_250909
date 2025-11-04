@@ -7,10 +7,10 @@ import Animated, {
   runOnJS,
   useAnimatedStyle,
   useSharedValue,
-  withSpring,
+  withSpring
 } from 'react-native-reanimated';
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get('window');
 
 
 // 언어별 메뉴 이미지 배열 (각 언어당 4장)
@@ -108,11 +108,9 @@ const menuImagesByLanguage = {
   ],
 } as const;
 
-// 더블탭 + 핀치 줌 이미지 컴포넌트
-const ZoomableImage = React.memo(({ source, onZoomChange }: { 
-  source: any; 
-  onZoomChange: (isZoomed: boolean) => void;
-}) => {
+// 확대 가능한 단독 이미지 컴포넌트
+const ZoomableImage = React.memo(({ source, onZoomChange }: { source: any; onZoomChange?: (isZoomed: boolean) => void }) => {
+  // 각 이미지별 독립적인 줌 상태 관리
   const scale = useSharedValue(1);
   const savedScale = useSharedValue(1);
   const translateX = useSharedValue(0);
@@ -120,46 +118,13 @@ const ZoomableImage = React.memo(({ source, onZoomChange }: {
   const savedTranslateX = useSharedValue(0);
   const savedTranslateY = useSharedValue(0);
 
-  const updateZoomState = (zoomed: boolean) => {
-    onZoomChange(zoomed);
-  };
-
-  // 더블탭으로 2배 확대/축소
-  const doubleTap = Gesture.Tap()
-    .numberOfTaps(2)
-    .onEnd((event) => {
-      'worklet';
-      if (scale.value === 1) {
-        // 확대: 탭한 위치를 중심으로 2배 확대
-        const tapX = event.x;
-        const tapY = event.y;
-        
-        // 이미지 중심에서 탭 위치까지의 거리 계산
-        const centerX = width / 2;
-        const centerY = width / 2;
-        
-        // 확대 후 탭한 위치가 중심에 오도록 translate 계산
-        const newTranslateX = (centerX - tapX) * 1;
-        const newTranslateY = (centerY - tapY) * 1;
-        
-        scale.value = withSpring(2, { damping: 15 });
-        translateX.value = withSpring(newTranslateX, { damping: 15 });
-        translateY.value = withSpring(newTranslateY, { damping: 15 });
-        savedScale.value = 2;
-        savedTranslateX.value = newTranslateX;
-        savedTranslateY.value = newTranslateY;
-        runOnJS(updateZoomState)(true);
-      } else {
-        // 축소: 즉시 원본 크기로 복구
-        scale.value = withSpring(1, { damping: 15 });
-        translateX.value = withSpring(0, { damping: 15 });
-        translateY.value = withSpring(0, { damping: 15 });
-        savedScale.value = 1;
-        savedTranslateX.value = 0;
-        savedTranslateY.value = 0;
-        runOnJS(updateZoomState)(false);
-      }
-    });
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: translateX.value },
+      { translateY: translateY.value },
+      { scale: scale.value },
+    ],
+  }));
 
   // 핀치 제스처로 확대/축소
   const pinch = Gesture.Pinch()
@@ -170,81 +135,75 @@ const ZoomableImage = React.memo(({ source, onZoomChange }: {
     .onUpdate((event) => {
       'worklet';
       const newScale = savedScale.value * event.scale;
-      // 1배에서 3배까지 제한
       if (newScale >= 1 && newScale <= 3) {
         scale.value = newScale;
-        runOnJS(updateZoomState)(newScale > 1);
       }
     })
     .onEnd(() => {
       'worklet';
-      // 1.2배 미만이면 원본 크기로 복구
-      if (scale.value < 1.3) {
+      if (scale.value <= 1.2) {
         scale.value = withSpring(1, { damping: 15 });
         translateX.value = withSpring(0, { damping: 15 });
         translateY.value = withSpring(0, { damping: 15 });
         savedScale.value = 1;
         savedTranslateX.value = 0;
         savedTranslateY.value = 0;
-        runOnJS(updateZoomState)(false);
+        if (onZoomChange) {
+          runOnJS(onZoomChange)(false);
+        }
       } else {
         savedScale.value = scale.value;
+        if (onZoomChange) {
+          runOnJS(onZoomChange)(true);
+        }
       }
     });
 
-  // 팬 제스처로 확대된 이미지 드래그
+  // 팬 제스처로 확대된 이미지 드래그 (확대 시에만 활성화, 가로세로 모두 이동 가능)
   const pan = Gesture.Pan()
-    .minDistance(0) // 제스처로 인식되기 위해 손가락이 이동해야 하는 최소 거리
-    .activateAfterLongPress(10) //롱프레스 제스처가 발생한 후, Pan 제스처가 활성화되기까지의 시간(밀리초) *속도 향상에 중요해 보임
+    //.activeOffsetX([-23, 23])
+    .activeOffsetY([-3, 3])
     .onStart(() => {
       'worklet';
+      if (scale.value <= 1.2) return;
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
-      console.log('pan start');
     })
     .onUpdate((event) => {
       'worklet';
-      if (scale.value > 1.2) {
-        // 확대된 상태에서만 드래그 허용
-        const imageWidth = width * scale.value;
-        const imageHeight = width * scale.value; // 정사각형 이미지 가정
-        
-        // 드래그 경계 계산 - 이미지가 화면 밖으로 나가지 않도록
-        //const maxTranslateX = Math.max(0, (imageWidth - width) / 2);
-        //const maxTranslateY = Math.max(0, (imageHeight - width) / 2);
-        
-        const newTranslateX = savedTranslateX.value + event.translationX;
-        const newTranslateY = savedTranslateY.value + event.translationY;
-        
-        // 부드러운 경계 제한
-        //translateX.value = Math.max(-maxTranslateX, Math.min(maxTranslateX, newTranslateX));
-        //translateY.value = Math.max(-maxTranslateY, Math.min(maxTranslateY, newTranslateY));
+      if (scale.value <= 1.2) return;
 
-        translateX.value = newTranslateX;
-        translateY.value = newTranslateY;
-      }
-      console.log('pan update');
+      // 확대된 이미지의 경계 계산
+      const maxTranslateX = (width * (scale.value - 1)) / 2;
+      const maxTranslateY = (height * (scale.value - 1)) / 2;
+
+      // 새로운 위치 계산
+      let newTranslateX = savedTranslateX.value + event.translationX;
+      let newTranslateY = savedTranslateY.value + event.translationY;
+
+      // 경계 제한 적용
+      newTranslateX = Math.max(-maxTranslateX, Math.min(maxTranslateX, newTranslateX));
+      newTranslateY = Math.max(-maxTranslateY, Math.min(maxTranslateY, newTranslateY));
+
+      translateX.value = newTranslateX;
+      translateY.value = newTranslateY;
     })
     .onEnd(() => {
       'worklet';
+      if (scale.value <= 1.2) return;
+
+      // 최종 위치도 경계 내로 제한
+      const maxTranslateX = (width * (scale.value - 1)) / 2;
+      const maxTranslateY = (height * (scale.value - 1)) / 2;
+
+      translateX.value = Math.max(-maxTranslateX, Math.min(maxTranslateX, translateX.value));
+      translateY.value = Math.max(-maxTranslateY, Math.min(maxTranslateY, translateY.value));
+
       savedTranslateX.value = translateX.value;
       savedTranslateY.value = translateY.value;
-      console.log('pan end');
     });
 
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: translateX.value },
-      { translateY: translateY.value },
-      { scale: scale.value },
-    ],
-  }));
-
-  // 제스처 조합: 핀치와 팬은 동시에, 더블탭은 별도로
-  const composed = Gesture.Simultaneous(
-    Gesture.Exclusive(doubleTap, pan),
-    pinch
-  );
+  const composed = Gesture.Simultaneous(pan, pinch);
 
   return (
     <GestureDetector gesture={composed}>
@@ -255,13 +214,58 @@ const ZoomableImage = React.memo(({ source, onZoomChange }: {
   );
 });
 
+// 스와이프 가능한 이미지 갤러리 컴포넌트
+const SwipeableGallery = React.memo(({ 
+  images, 
+  currentIndex, 
+  onScroll, 
+  onScrollEnd, 
+  isZoomed,
+  onZoomChange,
+  scrollViewRef
+}: { 
+  images: any[]; 
+  currentIndex: number; 
+  onScroll: (event: any) => void; 
+  onScrollEnd: (event: any) => void; 
+  isZoomed: boolean;
+  onZoomChange: (isZoomed: boolean) => void;
+  scrollViewRef: React.RefObject<ScrollView | null>;
+}) => {
+
+  return (
+    <View style={styles.galleryContainer}>
+      <ScrollView
+        ref={scrollViewRef}
+        horizontal
+        pagingEnabled
+        showsHorizontalScrollIndicator={false}
+        onScroll={onScroll}
+        onMomentumScrollEnd={onScrollEnd}
+        scrollEventThrottle={16}
+        style={styles.scrollView}
+        scrollEnabled={!isZoomed}
+        contentOffset={{ x: width, y: 0 }} // 초기 위치를 첫 번째 실제 이미지로 설정
+      >
+        {images.map((image, index) => (
+          <View key={index} style={styles.imageContainer}>
+            <ZoomableImage 
+              source={image}
+              onZoomChange={onZoomChange}
+            />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+  );
+});
+
 const App = () => {
   const { lang } = useLocalSearchParams();
   const router = useRouter();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isZoomed, setIsZoomed] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
-  const [isScrolling, setIsScrolling] = useState(false);
   const [iconOpacity, setIconOpacity] = useState(0.3); // 아이콘 투명도 상태 (0.0 ~ 1.0)
   
   // 언어 파라미터에 따른 메뉴 이미지 배열 선택 (기본값: kr)
@@ -271,7 +275,7 @@ const App = () => {
   };
 
   const menuImages = getMenuImages();
-  
+
   // 무한 스크롤을 위해 이미지 배열을 확장 (앞뒤에 복사본 추가)
   const infiniteImages = [
     menuImages[menuImages.length - 1], // 마지막 이미지를 맨 앞에
@@ -283,12 +287,12 @@ const App = () => {
   const handleScroll = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / width);
-    
+
     // 실제 이미지 인덱스 계산 (복사본 제외)
     let realIndex = index - 1;
     if (realIndex < 0) realIndex = menuImages.length - 1;
     if (realIndex >= menuImages.length) realIndex = 0;
-    
+
     setCurrentIndex(realIndex);
   };
 
@@ -296,7 +300,7 @@ const App = () => {
   const handleScrollEnd = (event: any) => {
     const scrollPosition = event.nativeEvent.contentOffset.x;
     const index = Math.round(scrollPosition / width);
-    
+
     // 첫 번째 복사본(인덱스 0)에 있으면 마지막 실제 이미지로 이동
     if (index === 0) {
       scrollViewRef.current?.scrollTo({
@@ -317,7 +321,7 @@ const App = () => {
   React.useEffect(() => {
     // 초기 currentIndex를 0으로 설정
     setCurrentIndex(0);
-    
+
     // 스크롤 위치를 첫 번째 실제 이미지로 설정
     const timer = setTimeout(() => {
       scrollViewRef.current?.scrollTo({
@@ -325,7 +329,7 @@ const App = () => {
         animated: false
       });
     }, 50); // 타이밍을 더 빠르게 조정
-    
+
     return () => clearTimeout(timer);
   }, [lang]); // lang이 변경될 때도 실행
 
@@ -335,20 +339,20 @@ const App = () => {
   };
 
   // 언어 선택 페이지로 이동
-  const goToLanguage = () => {
-    router.push('/lang');
-  };
+  //const goToLanguage = () => {
+  //  router.push('/lang');
+  //};
 
   // 이전 이미지로 이동 (왼쪽 화살표)
   const goToPrevious = () => {
     const currentScrollPosition = (currentIndex + 1) * width; // 현재 위치
     const targetScrollPosition = currentScrollPosition - width; // 이전 위치
-    
+
     scrollViewRef.current?.scrollTo({
       x: targetScrollPosition,
       animated: true
     });
-    
+
     // handleScrollEnd에서 무한 스크롤 처리가 자동으로 됨
   };
 
@@ -356,12 +360,12 @@ const App = () => {
   const goToNext = () => {
     const currentScrollPosition = (currentIndex + 1) * width; // 현재 위치
     const targetScrollPosition = currentScrollPosition + width; // 다음 위치
-    
+
     scrollViewRef.current?.scrollTo({
       x: targetScrollPosition,
       animated: true
     });
-    
+
     // handleScrollEnd에서 무한 스크롤 처리가 자동으로 됨
   };
 
@@ -383,6 +387,7 @@ const App = () => {
     setIconOpacity(prevOpacity => prevOpacity <= 0.5 ? 0.8 : 0.3);
   };
 
+
   // 페이지네이션 도트 렌더링
   const renderPagination = () => {
     return (
@@ -399,86 +404,55 @@ const App = () => {
       </View>
     );
   };
-  
+
   return (
     <View style={styles.container}>
       {/* 오른쪽 상단 네비게이션 버튼들 */}
       <View style={styles.topNavigation}>
-        <TouchableOpacity 
-          style={styles.navButton} 
+        <TouchableOpacity
+          style={styles.navButton}
           onPress={goToHome}
           activeOpacity={0.7}
         >
           <MaterialIcons name="home" size={28} color="#ffffff" style={{ opacity: iconOpacity }} />
         </TouchableOpacity>
-        
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={goToLanguage}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="language" size={28} color="#ffffff" style={{ opacity: iconOpacity }} />
-        </TouchableOpacity>
-        {/*}
-        <TouchableOpacity 
-          style={styles.navButton} 
-          onPress={toggleIconOpacity}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="opacity" size={28} color="#ffffff" style={{ opacity: iconOpacity }} />
-        </TouchableOpacity>
-        */}
       </View>
 
       {/* 컨텐츠 레이어 */}
       <View style={styles.contentLayer}>
-        {/*
-        <View style={styles.overlay}>
-          <Text style={styles.text}>선택언어: {lang} - 메뉴 이미지 갤러리</Text>
-        </View>
-        */}
+        <SwipeableGallery
+          images={infiniteImages}
+          currentIndex={currentIndex}
+          onScroll={handleScroll}
+          onScrollEnd={handleScrollEnd}
+          isZoomed={isZoomed}
+          onZoomChange={handleZoomChange}
+          scrollViewRef={scrollViewRef}
+        />
 
-        {/* 스와이프 가능한 이미지 갤러리 */}
-        <View style={styles.galleryContainer}>
-          <ScrollView
-            ref={scrollViewRef}
-            horizontal
-            pagingEnabled
-            showsHorizontalScrollIndicator={false}
-            onScroll={handleScroll}
-            onMomentumScrollEnd={handleScrollEnd}
-            scrollEventThrottle={16}
-            style={styles.scrollView}
-            scrollEnabled={!isZoomed}
-            contentOffset={{ x: width, y: 0 }} // 초기 위치를 첫 번째 실제 이미지로 설정
-          >
-            {infiniteImages.map((image, index) => (
-              <View key={index} style={styles.imageContainer}>
-                <ZoomableImage source={image} onZoomChange={handleZoomChange} />
-              </View>
-            ))}
-          </ScrollView>
-          
-          {/* 좌우 이동 화살표 */}
-          <TouchableOpacity 
-            style={styles.leftArrow} 
-            onPress={goToPrevious}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="chevron-left" size={40} color="#ffffff" style={{ opacity: iconOpacity }} />
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.rightArrow} 
-            onPress={goToNext}
-            activeOpacity={0.7}
-          >
-            <MaterialIcons name="chevron-right" size={40} color="#ffffff" style={{ opacity: iconOpacity }} />
-          </TouchableOpacity>
-          
-          {/* 페이지네이션 도트 */}
-          {renderPagination()}
-        </View>
+        {/* 좌우 이동 화살표 - 확대 상태가 아닐 때만 표시 */}
+        {!isZoomed && (
+          <>
+            <TouchableOpacity
+              style={styles.leftArrow}
+              onPress={goToPrevious}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="chevron-left" size={40} color="#ffffff" style={{ opacity: iconOpacity }} />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.rightArrow}
+              onPress={goToNext}
+              activeOpacity={0.7}
+            >
+              <MaterialIcons name="chevron-right" size={40} color="#ffffff" style={{ opacity: iconOpacity }} />
+            </TouchableOpacity>
+          </>
+        )}
+
+        {/* 페이지네이션 도트 */}
+        {renderPagination()}
       </View>
     </View>
   );
