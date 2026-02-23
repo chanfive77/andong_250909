@@ -3,18 +3,18 @@ import { Image, ImageBackground, StyleSheet, View } from 'react-native';
 import { PanGestureHandler, State } from 'react-native-gesture-handler';
 
 const images = [
-  { id: '1', source: require('../assets/images/lang/america_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'us' } },
-  { id: '2', source: require('../assets/images/lang/china_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'cn' } },
-  { id: '3', source: require('../assets/images/lang/japan_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'jp' } },
-  { id: '4', source: require('../assets/images/lang/spain_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'sp' } },
-  { id: '5', source: require('../assets/images/lang/thailand_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'tl' } },
-  { id: '6', source: require('../assets/images/lang/indonesia_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'ins' } },
-  { id: '7', source: require('../assets/images/lang/taipei_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'tp' } },
-  { id: '8', source: require('../assets/images/lang/vietnam_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'vn' } },
-  { id: '9', source: require('../assets/images/lang/france_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'fr' } },
-  { id: '10', source: require('../assets/images/lang/india_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'ind' } },
-  { id: '11', source: require('../assets/images/lang/mongolia_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'mg' } },
-  { id: '12', source: require('../assets/images/lang/germany_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'gm' } },
+  { id: '1', source: require('../assets/images/lang/america_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'us' }, enabled: true },
+  { id: '2', source: require('../assets/images/lang/china_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'cn' }, enabled: true },
+  { id: '3', source: require('../assets/images/lang/japan_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'jp' }, enabled: true },
+  { id: '4', source: require('../assets/images/lang/spain_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'sp' }, enabled: false },
+  { id: '5', source: require('../assets/images/lang/thailand_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'tl' }, enabled: false },
+  { id: '6', source: require('../assets/images/lang/indonesia_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'ins' }, enabled: false },
+  { id: '7', source: require('../assets/images/lang/taipei_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'tp' }, enabled: false },
+  { id: '8', source: require('../assets/images/lang/vietnam_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'vn' }, enabled: false },
+  { id: '9', source: require('../assets/images/lang/france_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'fr' }, enabled: false },
+  { id: '10', source: require('../assets/images/lang/india_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'ind' }, enabled: false },
+  { id: '11', source: require('../assets/images/lang/mongolia_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'mg' }, enabled: false },
+  { id: '12', source: require('../assets/images/lang/germany_lang.jpg'), linkUrl: '/menu' as const, state: { lang: 'gm' }, enabled: false },
 ];
 
 const App = () => {
@@ -55,13 +55,17 @@ const App = () => {
           </Link>
         </View>
         <View style={styles.container}>
-            {images.map((image) => (
-              <View key={image.id} style={styles.imageWrapper}>
+          {images.map((image) => (
+            <View key={image.id} style={styles.imageWrapper}>
+              {image.enabled ? (
                 <Link href={`${image.linkUrl}?lang=${image.state.lang}`}>
-                <Image source={image.source} style={styles.image} />
+                  <Image source={image.source} style={styles.image} />
                 </Link>
-              </View>
-            ))}
+              ) : (
+                <Image source={image.source} style={[styles.image, { opacity: 0.25 }]} />
+              )}
+            </View>
+          ))}
         </View>
       </View>
 

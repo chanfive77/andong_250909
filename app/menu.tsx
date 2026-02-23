@@ -4,10 +4,10 @@ import React, { useRef, useState } from 'react';
 import { Dimensions, Image, ScrollView, StyleSheet, TouchableOpacity, View } from 'react-native';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import Animated, {
-  runOnJS,
-  useAnimatedStyle,
-  useSharedValue,
-  withSpring
+    runOnJS,
+    useAnimatedStyle,
+    useSharedValue,
+    withSpring
 } from 'react-native-reanimated';
 
 const { width, height } = Dimensions.get('window');
@@ -16,32 +16,24 @@ const { width, height } = Dimensions.get('window');
 // 언어별 메뉴 이미지 배열 (각 언어당 4장)
 const menuImagesByLanguage = {
   kr: [
-    require('../assets/images/menu/kr_n1.jpg'),
-    require('../assets/images/menu/kr_n2.jpg'),
-    require('../assets/images/menu/kr_n3.jpg'),
-    require('../assets/images/menu/kr_n4.jpg'),
-    require('../assets/images/menu/kr_n5.jpg'),
+    require('../assets/images/new_menu/kr_n1.jpg'),
+    require('../assets/images/new_menu/kr_n2.jpg'),
+    require('../assets/images/new_menu/kr_n3.jpg'),
   ],
   us: [
-    require('../assets/images/menu/us_n1.jpg'),
-    require('../assets/images/menu/us_n2.jpg'),
-    require('../assets/images/menu/us_n3.jpg'),
-    require('../assets/images/menu/us_n4.jpg'),
-    require('../assets/images/menu/us_n5.jpg'),
+    require('../assets/images/new_menu/us_n1.jpg'),
+    require('../assets/images/new_menu/us_n2.jpg'),
+    require('../assets/images/new_menu/us_n3.jpg'),
   ],
   cn: [
-    require('../assets/images/menu/cn_n1.jpg'),
-    require('../assets/images/menu/cn_n2.jpg'),
-    require('../assets/images/menu/cn_n3.jpg'),
-    require('../assets/images/menu/cn_n4.jpg'),
-    require('../assets/images/menu/cn_n5.jpg'),
+    require('../assets/images/new_menu/cn_n1.jpg'),
+    require('../assets/images/new_menu/cn_n2.jpg'),
+    require('../assets/images/new_menu/cn_n3.jpg'),
   ],
   jp: [
-    require('../assets/images/menu/jp_n1.jpg'),
-    require('../assets/images/menu/jp_n2.jpg'),
-    require('../assets/images/menu/jp_n3.jpg'),
-    require('../assets/images/menu/jp_n4.jpg'),
-    require('../assets/images/menu/jp_n5.jpg'),
+    require('../assets/images/new_menu/jp_n1.jpg'),
+    require('../assets/images/new_menu/jp_n2.jpg'),
+    require('../assets/images/new_menu/jp_n3.jpg'),
   ],
   sp: [
     require('../assets/images/menu/sp_n1.jpg'),
